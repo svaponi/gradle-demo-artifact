@@ -1,0 +1,80 @@
+group 'io.github.svaponi'
+version '1.0'
+
+apply plugin: 'java'
+apply plugin: 'maven'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// specific repositories on Artifactory
+def release_repo = 'libs-release'
+def snapshot_repo = 'libs-snapshot'
+
+// create file ~/.gradle/gradle.properties with following properties
+/*
+    remote_repository_baseurl=YOUR_REMOTE_REPOSITORY_URL
+    remote_repository_username=YOUR_REMOTE_REPOSITORY_USERNAME
+    remote_repository_password=YOUR_REMOTE_REPOSITORY_ENCRYPTED_PASSWORD
+*/
+
+repositories {
+    mavenLocal()
+    maven {
+        url "${remote_repository_baseurl}/${release_repo}"
+        credentials {
+            username remote_repository_username
+            password remote_repository_password // password may be encrypted
+        }
+    }
+    maven {
+        url "${remote_repository_baseurl}/${snapshot_repo}"
+        credentials {
+            username remote_repository_username
+            password remote_repository_password
+        }
+    }
+    mavenCentral()
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "${remote_repository_baseurl}/${release_repo}") {
+                authentication(userName: remote_repository_username, password: remote_repository_password);
+            }
+            snapshotRepository(url: "${remote_repository_baseurl}/${snapshot_repo}") {
+                authentication(userName: remote_repository_username, password: remote_repository_password);
+            }
+        }
+    }
+}
+
+dependencies {
+    // compile "org.projectlombok:lombok:1.16.20"
+    testCompile 'junit:junit:4.12'
+}
+
+test {
+    dependsOn cleanTest
+    testLogging {
+        events 'passed' // show that tests are run in the command-line output
+        showStandardStreams true // show STDOUT
+        exceptionFormat 'full' // show exception details
+    }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
